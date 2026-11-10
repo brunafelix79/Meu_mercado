@@ -1,0 +1,35 @@
+name: Gerar APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Criar projeto Android
+        run: flutter create --org com.mercado --project-name mercado_app .
+      - name: Dependencias
+        run: flutter pub add image_picker google_mlkit_text_recognition shared_preferences
+      - name: Usar meu codigo
+        run: cp main.dart lib/main.dart
+      - name: Ajustar minSdk
+        run: |
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/' android/app/build.gradle || true
+      - name: Gerar APK
+        run: flutter build apk --release
+      - name: Publicar APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: App v${{ github.run_number }}
+          files: build/app/outputs/flutter-apk/app-release.apk
